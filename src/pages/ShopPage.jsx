@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchSets } from '../api/pokemon';
+import { useSound } from '../hooks/useSound';
 import { motion } from 'framer-motion';
 
 const ShopPage = () => {
     const [sets, setSets] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+    const { playSound } = useSound();
 
     useEffect(() => {
         const loadSets = async () => {
@@ -57,7 +59,10 @@ const ShopPage = () => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.05 }}
-                            onClick={() => navigate(`/open/${set.id}`, { state: { set } })}
+                            onClick={() => {
+                                playSound('swipe', 0.2);
+                                navigate(`/open/${set.id}`, { state: { set } });
+                            }}
                             className="group relative bg-surface rounded-2xl overflow-hidden border border-white/5 hover:border-primary/50 transition-all duration-300 active:scale-95 cursor-pointer"
                         >
                             <div className="aspect-[4/3] p-4 flex items-center justify-center bg-gradient-to-br from-white/10 to-transparent">

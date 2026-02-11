@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { fetchSets, fetchCardsBySet } from '../api/pokemon';
 import { useCollection } from '../hooks/useCollection';
+import { useSound } from '../hooks/useSound';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter, ShieldCheck, X } from 'lucide-react';
 
@@ -15,6 +16,13 @@ const CollectionPage = () => {
     const [search, setSearch] = useState('');
     const [activeCard, setActiveCard] = useState(null);
     const { inventory, getCardCount } = useCollection();
+    const { playSound } = useSound();
+
+    const isRare = (rarity) => {
+        if (!rarity) return false;
+        const rareTypes = ['Rare', 'Rare Holo', 'Holo Rare', 'Ultra Rare', 'Secret Rare', 'Rare Ultra', 'Rare Secret', 'Holo Rare V', 'Holo Rare VMAX', 'Holo Rare VSTAR', 'Hyper rare', 'Illustration rare', 'Special illustration rare', 'Double rare', 'Rara', 'Holo Rara', 'Rara Doble', 'Rara Ultra', 'Rara Secreto', 'Rara Ilustración', 'Rara Ilustración Especial', 'Rara Radiante'];
+        return rareTypes.some(r => rarity.includes(r));
+    };
 
     const formatRarity = (rarity) => {
         if (!rarity) return 'Común';
@@ -177,7 +185,14 @@ const CollectionPage = () => {
                                     <motion.div
                                         key={card.id}
                                         layoutId={card.id}
-                                        onClick={() => setActiveCard(card)}
+                                        onClick={() => {
+                                            setActiveCard(card);
+                                            if (isRare(card.rarity) && owned) {
+                                                playSound('rare', 0.5);
+                                            } else {
+                                                playSound('swipe', 0.3);
+                                            }
+                                        }}
                                         className={`relative aspect-[2/3] rounded-lg overflow-hidden cursor-pointer transition-all active:scale-95 ${!owned ? 'grayscale opacity-40 brightness-50' : 'card-shadow ring-1 ring-white/10'
                                             }`}
                                     >

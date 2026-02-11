@@ -3,6 +3,7 @@ import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchRandomCardsFromSet } from '../api/pokemon';
 import { useCollection } from '../hooks/useCollection';
+import { useSound } from '../hooks/useSound';
 import { X, Sparkles, AlertCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -17,6 +18,13 @@ const PackOpeningPage = () => {
     const navigate = useNavigate();
     const setInfo = location.state?.set;
     const { addCardsToCollection } = useCollection();
+    const { playSound } = useSound();
+
+    const isRare = (rarity) => {
+        if (!rarity) return false;
+        const rareTypes = ['Rare', 'Rare Holo', 'Holo Rare', 'Ultra Rare', 'Secret Rare', 'Rare Ultra', 'Rare Secret', 'Holo Rare V', 'Holo Rare VMAX', 'Holo Rare VSTAR', 'Hyper rare', 'Illustration rare', 'Special illustration rare', 'Double rare', 'Rara', 'Holo Rara', 'Rara Doble', 'Rara Ultra', 'Rara Secreto', 'Rara Ilustración', 'Rara Ilustración Especial', 'Rara Radiante'];
+        return rareTypes.some(r => rarity.includes(r));
+    };
 
     const formatRarity = (rarity) => {
         if (!rarity) return 'Común';
@@ -58,6 +66,8 @@ const PackOpeningPage = () => {
         if (phase !== 'pack') return;
 
         setIsShaking(true);
+        playSound('tear', 0.8);
+
         setTimeout(() => {
             setIsShaking(false);
             setPhase('tearing');
@@ -65,13 +75,27 @@ const PackOpeningPage = () => {
                 setPhase('stack');
                 // Save to collection immediately when revealed
                 addCardsToCollection(cards);
+
+                // Check if the FIRST card is rare
+                if (cards.length > 0 && isRare(cards[0].rarity)) {
+                    setTimeout(() => playSound('rare', 0.6), 200);
+                }
             }, 800);
         }, 500);
     };
 
     const handleCardTap = () => {
         if (currentIndex < cards.length - 1) {
-            setCurrentIndex(prev => prev + 1);
+            const nextIndex = currentIndex + 1;
+            const nextCard = cards[nextIndex];
+
+            if (isRare(nextCard.rarity)) {
+                playSound('rare', 0.6);
+            } else {
+                playSound('swipe', 0.4);
+            }
+
+            setCurrentIndex(nextIndex);
         } else {
             setPhase('finished');
         }
