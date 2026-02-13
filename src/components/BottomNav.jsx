@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { ShoppingBag, Box, BookOpen } from 'lucide-react';
+import { ShoppingBag, Box, BookOpen, History } from 'lucide-react';
 
 const BottomNav = () => {
     return (
@@ -25,6 +25,17 @@ const BottomNav = () => {
             >
                 <BookOpen size={24} />
                 <span className="text-[10px] font-medium uppercase tracking-wider">Colección</span>
+            </NavLink>
+
+            <NavLink
+                to="/history"
+                className={({ isActive }) =>
+                    `flex flex-col items-center gap-1 transition-colors ${isActive ? 'text-primary' : 'text-slate-400 hover:text-slate-200'
+                    }`
+                }
+            >
+                <History size={24} />
+                <span className="text-[10px] font-medium uppercase tracking-wider">Historial</span>
             </NavLink>
         </nav>
     );

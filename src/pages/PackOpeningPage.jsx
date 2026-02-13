@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchRandomCardsFromSet, getPreparedPack } from '../api/pokemon';
@@ -7,6 +7,7 @@ import { X, Sparkles, AlertCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import CardImage from '../components/CardImage';
+import BrandHeader from '../components/BrandHeader';
 import { preloadImages } from '../utils/preload';
 
 function cn(...inputs) {
@@ -63,6 +64,11 @@ const PackOpeningPage = () => {
     const [activeCard, setActiveCard] = useState(null);
     const [ambientColor, setAmbientColor] = useState('transparent');
 
+    const totalPackValue = useMemo(() => {
+        if (!cards.length) return "0.00";
+        return cards.reduce((sum, card) => sum + (card.pricing?.cardmarket?.avg || 0), 0).toFixed(2);
+    }, [cards]);
+
     const playRaritySound = (soundUrl) => {
         const audio = new Audio(soundUrl);
         audio.volume = 0.5;
@@ -118,7 +124,7 @@ const PackOpeningPage = () => {
     }, [currentIndex, phase, cards]);
 
     const handlePackTap = () => {
-        if (phase !== 'pack') return;
+        if (phase !== 'pack' || isShaking) return;
 
         setIsShaking(true);
         // Play tearing sound?
@@ -129,8 +135,8 @@ const PackOpeningPage = () => {
             setPhase('tearing');
             setTimeout(() => {
                 setPhase('stack');
-                // Save to collection immediately when revealed
-                addCardsToCollection(cards);
+                // Save to collection and history
+                addCardsToCollection(cards, setInfo);
             }, 800);
         }, 500);
     };
@@ -194,6 +200,11 @@ const PackOpeningPage = () => {
                     >
                         <X size={24} />
                     </button>
+
+                    <div className="scale-75 origin-top translate-y-[-10px]">
+                        <BrandHeader />
+                    </div>
+
                     {phase === 'stack' && (
                         <div className="flex items-center gap-3">
                             <button
@@ -332,12 +343,35 @@ const PackOpeningPage = () => {
                                 })}
                             </div>
 
+                            {/* Precio de la carta actual */}
+                            <AnimatePresence mode="wait">
+                                {phase === 'stack' && cards[currentIndex] && (
+                                    <motion.div
+                                        key={`reveal-price-${currentIndex}`}
+                                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                                        className="mb-8 bg-black/40 backdrop-blur-2xl border border-white/10 px-8 py-3 rounded-3xl flex flex-col items-center gap-0 shadow-2xl z-20"
+                                    >
+                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">
+                                            Valor de mercado
+                                        </span>
+                                        <div className="flex items-baseline gap-1 text-green-400">
+                                            <span className="text-3xl font-black drop-shadow-[0_0_10px_rgba(74,222,128,0.4)]">
+                                                {cards[currentIndex].pricing?.cardmarket?.avg || '---'}
+                                            </span>
+                                            <span className="text-sm font-bold text-green-500/80">€</span>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 className="text-center"
                             >
-                                <p className="text-slate-400 text-sm font-medium">Pulsa la carta para revelar la siguiente</p>
+                                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Pulsa para revelar la siguiente</p>
                             </motion.div>
                         </div>
                     )}
@@ -357,7 +391,13 @@ const PackOpeningPage = () => {
                                     <Sparkles className="text-green-500 w-8 h-8" />
                                 </motion.div>
                                 <h2 className="text-2xl font-bold text-white">¡Sobre Abierto!</h2>
-                                <p className="text-slate-400 text-sm">{cards.length} cartas añadidas a tu colección</p>
+                                <p className="text-slate-400 text-sm mb-4">{cards.length} cartas añadidas a tu colección</p>
+
+                                {/* Badge de Valor Total del Sobre */}
+                                <div className="inline-flex flex-col items-center bg-green-500/10 border border-green-500/20 px-6 py-2 rounded-2xl">
+                                    <span className="text-[10px] text-green-500/70 font-bold uppercase tracking-widest">Valor total del sobre</span>
+                                    <span className="text-2xl font-black text-green-400">{totalPackValue} €</span>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-3 gap-3 mb-10">
@@ -444,10 +484,13 @@ const PackOpeningPage = () => {
                                         <span className="px-3 py-1 bg-surface border border-white/10 rounded-full text-xs text-slate-400 capitalize">
                                             {formatRarity(activeCard.rarity)}
                                         </span>
-                                        <span className="px-3 py-1 bg-surface border border-white/10 rounded-full text-xs text-slate-400 font-mono">
-                                            {activeCard.id}
-                                        </span>
+                                        {activeCard.pricing?.cardmarket?.avg && (
+                                            <span className="px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full text-xs text-green-400 font-bold">
+                                                {activeCard.pricing.cardmarket.avg}€ (Cardmarket)
+                                            </span>
+                                        )}
                                     </div>
+                                    <p className="text-[10px] text-slate-400 mt-3 font-mono uppercase">ID: {activeCard.id}</p>
                                 </div>
                             </motion.div>
                         </motion.div>

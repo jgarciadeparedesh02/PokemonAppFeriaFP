@@ -30,6 +30,16 @@ export const fetchSets = async () => {
     }
 };
 
+export const fetchCardById = async (cardId) => {
+    try {
+        const response = await fetch(`${API_URL}/cards/${cardId}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching card details:', cardId, error);
+        return null;
+    }
+};
+
 export const fetchCardsBySet = async (setId) => {
     try {
         const response = await fetch(`${API_URL}/sets/${setId}`);

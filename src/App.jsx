@@ -4,6 +4,7 @@ import { AnimatePresence } from 'framer-motion';
 import ShopPage from './pages/ShopPage';
 import CollectionPage from './pages/CollectionPage';
 import PackOpeningPage from './pages/PackOpeningPage';
+import HistoryPage from './pages/HistoryPage';
 import BottomNav from './components/BottomNav';
 
 const AppContent = () => {
@@ -18,6 +19,7 @@ const AppContent = () => {
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<ShopPage />} />
           <Route path="/collection" element={<CollectionPage />} />
+          <Route path="/history" element={<HistoryPage />} />
           <Route path="/open/:setId" element={<PackOpeningPage />} />
         </Routes>
 

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchSets, preparePack } from '../api/pokemon';
 import { motion } from 'framer-motion';
 import CardImage from '../components/CardImage';
+import BrandHeader from '../components/BrandHeader';
 import { preloadImages } from '../utils/preload';
 
 const ShopPage = () => {
@@ -33,11 +34,12 @@ const ShopPage = () => {
     }
 
     return (
-        <div className="px-4 pt-6 pb-24">
+        <div className="px-4 pt-4 pb-24">
+            <BrandHeader />
             <header className="mb-8">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
                     Sobres de Mejora
-                </h1>
+                </h2>
                 <p className="text-slate-400 mt-1">Selecciona una expansión para abrir sobres</p>
             </header>
 

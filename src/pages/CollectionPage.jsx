@@ -5,6 +5,7 @@ import { useCollection } from '../hooks/useCollection';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter, ShieldCheck, X } from 'lucide-react';
 import CardImage from '../components/CardImage';
+import BrandHeader from '../components/BrandHeader';
 
 const CollectionPage = () => {
     const location = useLocation();
@@ -15,6 +16,8 @@ const CollectionPage = () => {
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [activeCard, setActiveCard] = useState(null);
+    const [fullCardDetails, setFullCardDetails] = useState(null);
+    const [loadingDetails, setLoadingDetails] = useState(false);
     const { inventory, getCardCount } = useCollection();
 
     const formatRarity = (rarity) => {
@@ -34,6 +37,27 @@ const CollectionPage = () => {
         };
         loadSets();
     }, []);
+
+    useEffect(() => {
+        if (activeCard) {
+            const loadDetails = async () => {
+                setLoadingDetails(true);
+                // Si ya vienen los detalles completos (como en PackOpening), no hace falta re-fetch
+                // Pero en CollectionPage vienen los datos básicos del set list
+                if (!activeCard.cardmarket) {
+                    const { fetchCardById } = await import('../api/pokemon');
+                    const details = await fetchCardById(activeCard.id);
+                    setFullCardDetails(details);
+                } else {
+                    setFullCardDetails(activeCard);
+                }
+                setLoadingDetails(false);
+            };
+            loadDetails();
+        } else {
+            setFullCardDetails(null);
+        }
+    }, [activeCard]);
 
     useEffect(() => {
         if (selectedSet) {
@@ -60,38 +84,150 @@ const CollectionPage = () => {
     }, [cards, search]);
 
     const stats = useMemo(() => {
-        if (cards.length === 0) return { collected: 0, total: 0 };
-        const collectedCount = cards.filter(c => inventory[c.id]).length;
-        return { collected: collectedCount, total: cards.length };
+        if (cards.length === 0) return { collected: 0, total: 0, totalValue: 0 };
+        const collectedCards = cards.filter(c => inventory[c.id]);
+        return {
+            collected: collectedCards.length,
+            total: cards.length,
+        };
+    }, [cards, inventory]);
+
+    // Track card details with pricing for the current set
+    const [cardDetailsMap, setCardDetailsMap] = useState({});
+    const [expansionValue, setExpansionValue] = useState(0);
+
+    useEffect(() => {
+        if (cards.length > 0) {
+            const loadPrices = async () => {
+                const ownedInSet = cards.filter(c => inventory[c.id]);
+                const details = { ...cardDetailsMap };
+                let total = 0;
+
+                // Load prices for owned cards that we don't have yet
+                for (const card of ownedInSet) {
+                    if (!details[card.id]) {
+                        try {
+                            const { fetchCardById } = await import('../api/pokemon');
+                            const data = await fetchCardById(card.id);
+                            details[card.id] = data;
+                        } catch (e) {
+                            console.error("Error fetching price for", card.id);
+                        }
+                    }
+
+                    const price = details[card.id]?.pricing?.cardmarket?.avg || 0;
+                    total += price * (inventory[card.id] || 1);
+                }
+
+                setCardDetailsMap(details);
+                setExpansionValue(total.toFixed(2));
+            };
+            loadPrices();
+        } else {
+            setCardDetailsMap({});
+            setExpansionValue(0);
+        }
     }, [cards, inventory]);
 
     return (
         <div className="px-4 pt-6 pb-24 min-h-screen">
-            <header className="mb-6">
-                <div className="flex items-center gap-3 mb-4">
-                    {selectedSet && (
-                        <button
-                            onClick={() => setSelectedSet(null)}
-                            className="p-2 bg-surface rounded-xl border border-white/5 text-slate-400"
+            {/* Modal Detail */}
+            <AnimatePresence>
+                {activeCard && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/90 backdrop-blur-sm"
+                        onClick={() => setActiveCard(null)}
+                    >
+                        <motion.div
+                            layoutId={activeCard.id}
+                            initial={{ scale: 0.8 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0.8 }}
+                            className="relative max-w-sm w-full"
+                            onClick={e => e.stopPropagation()}
                         >
-                            <X size={20} />
-                        </button>
-                    )}
-                    <h1 className="text-3xl font-bold text-white">
-                        {selectedSet ? setDetails?.name : 'Mi Colección'}
-                    </h1>
+                            <button
+                                onClick={() => setActiveCard(null)}
+                                className="absolute -top-12 right-0 p-2 text-white/50 hover:text-white"
+                            >
+                                <X size={32} />
+                            </button>
+
+                            <div className="rounded-3xl overflow-hidden shadow-2xl border border-white/10 aspect-[2/3] bg-surface relative">
+                                <CardImage
+                                    src={activeCard.image ? `${activeCard.image}/high.webp` : ''}
+                                    alt={activeCard.name}
+                                    className="w-full h-full"
+                                    imageClassName="object-contain"
+                                />
+                                {loadingDetails && (
+                                    <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] flex items-center justify-center">
+                                        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="mt-6 text-center">
+                                <h2 className="text-2xl font-bold text-white">{activeCard.name}</h2>
+                                <div className="flex items-center justify-center gap-2 mt-2">
+                                    <span className="px-3 py-1 bg-surface border border-white/10 rounded-full text-xs text-slate-400 capitalize">
+                                        {formatRarity(activeCard.rarity)}
+                                    </span>
+                                    {fullCardDetails?.pricing?.cardmarket?.avg && (
+                                        <span className="px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full text-xs text-green-400 font-bold">
+                                            {fullCardDetails.pricing.cardmarket.avg}€ (Cardmarket)
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-[10px] text-slate-500 mt-3 font-mono uppercase">ID: {activeCard.id}</p>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <header className="mb-6">
+                {!selectedSet && <BrandHeader />}
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                        {selectedSet && (
+                            <button
+                                onClick={() => setSelectedSet(null)}
+                                className="p-2 bg-surface rounded-xl border border-white/5 text-slate-400"
+                            >
+                                <X size={20} />
+                            </button>
+                        )}
+                        <h1 className="text-3xl font-bold text-white">
+                            {selectedSet ? setDetails?.name : 'Mi Colección'}
+                        </h1>
+                    </div>
                 </div>
 
-                {!selectedSet && (
+                {!selectedSet ? (
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                         <input
                             type="text"
-                            placeholder="Buscar en toda la colección..."
+                            placeholder="Buscar expansión..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             className="w-full bg-surface border border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:border-primary/50 transition-colors"
                         />
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 gap-3 mt-4">
+                        <div className="bg-surface/50 border border-white/5 rounded-2xl p-3">
+                            <p className="text-[10px] uppercase text-slate-500 font-bold mb-1">Cartas Obtenidas</p>
+                            <p className="text-xl font-black text-white">{stats.collected} / {stats.total}</p>
+                        </div>
+                        <div className="bg-green-500/5 border border-green-500/10 rounded-2xl p-3">
+                            <p className="text-[10px] uppercase text-green-500/70 font-bold mb-1">Valor Estimado</p>
+                            <p className="text-xl font-black text-green-400">{expansionValue} €</p>
+                        </div>
                     </div>
                 )}
             </header>
@@ -100,9 +236,6 @@ const CollectionPage = () => {
                 /* SETS LIST VIEW */
                 <div className="grid grid-cols-1 gap-4">
                     {sets.filter(s => s.name.toLowerCase().includes(search.toLowerCase())).map(set => {
-                        // Calculate progress for this set
-                        // Note: This requires knowing which cards are in which set in the inventory
-                        // For now we'll show the card count if available
                         const collectedInSet = Object.keys(inventory).filter(id => id.startsWith(set.id)).length;
                         const totalInSet = set.cardCount?.total || 0;
                         const progress = totalInSet > 0 ? Math.round((collectedInSet / totalInSet) * 100) : 0;
@@ -131,7 +264,7 @@ const CollectionPage = () => {
                                             />
                                         </div>
                                         <span className="text-[10px] font-mono text-slate-500 whitespace-nowrap">
-                                            {collectedInSet} / {totalInSet}
+                                            {collectedInSet} / {totalInSet} únicas
                                         </span>
                                     </div>
                                 </div>
@@ -142,26 +275,6 @@ const CollectionPage = () => {
             ) : (
                 /* CARDS GRID VIEW */
                 <>
-                    {/* Progress Bar for the specific set */}
-                    <div className="bg-surface rounded-2xl p-4 mb-6 border border-white/5">
-                        <div className="flex justify-between items-end mb-2">
-                            <div>
-                                <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Progreso de la expansión</p>
-                                <p className="text-xl font-black text-white">{stats.collected} / {stats.total}</p>
-                            </div>
-                            <p className="text-primary font-bold text-sm">
-                                {stats.total > 0 ? Math.round((stats.collected / stats.total) * 100) : 0}%
-                            </p>
-                        </div>
-                        <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                            <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${(stats.collected / (stats.total || 1)) * 100}%` }}
-                                className="h-full bg-primary"
-                            />
-                        </div>
-                    </div>
-
                     {loading ? (
                         <div className="grid grid-cols-3 gap-3 animate-pulse">
                             {[...Array(9)].map((_, i) => (
@@ -173,6 +286,8 @@ const CollectionPage = () => {
                             {filteredCards.map((card) => {
                                 const owned = !!inventory[card.id];
                                 const count = getCardCount(card.id);
+                                const details = cardDetailsMap[card.id];
+                                const price = details?.pricing?.cardmarket?.avg;
 
                                 return (
                                     <motion.div
@@ -195,6 +310,14 @@ const CollectionPage = () => {
                                             </div>
                                         )}
 
+                                        {owned && price && (
+                                            <div className="absolute bottom-1 left-1 right-1 bg-black/60 backdrop-blur-md rounded-md py-0.5 px-1 flex items-center justify-center">
+                                                <span className="text-[9px] font-black text-green-400">
+                                                    {price}€
+                                                </span>
+                                            </div>
+                                        )}
+
                                         {owned && (card.rarity?.includes('Rare') || card.rarity?.includes('Rara')) && (
                                             <div className="absolute inset-0 holo-effect opacity-30" />
                                         )}
@@ -205,56 +328,6 @@ const CollectionPage = () => {
                     )}
                 </>
             )}
-
-            {/* Card Detail Modal */}
-            <AnimatePresence>
-                {activeCard && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/90 backdrop-blur-sm"
-                        onClick={() => setActiveCard(null)}
-                    >
-                        <motion.div
-                            layoutId={activeCard.id}
-                            initial={{ scale: 0.8 }}
-                            animate={{ scale: 1 }}
-                            exit={{ scale: 0.8 }}
-                            className="relative max-w-sm w-full"
-                            onClick={e => e.stopPropagation()}
-                        >
-                            <button
-                                onClick={() => setActiveCard(null)}
-                                className="absolute -top-12 right-0 p-2 text-white/50 hover:text-white"
-                            >
-                                <X size={32} />
-                            </button>
-
-                            <div className="rounded-3xl overflow-hidden shadow-2xl border border-white/10">
-                                <CardImage
-                                    src={activeCard.image ? `${activeCard.image}/high.webp` : ''}
-                                    alt={activeCard.name}
-                                    className="w-full h-auto"
-                                    imageClassName="object-contain"
-                                />
-                            </div>
-
-                            <div className="mt-6 text-center">
-                                <h2 className="text-2xl font-bold text-white">{activeCard.name}</h2>
-                                <div className="flex items-center justify-center gap-2 mt-2">
-                                    <span className="px-3 py-1 bg-surface border border-white/10 rounded-full text-xs text-slate-400 capitalize">
-                                        {formatRarity(activeCard.rarity)}
-                                    </span>
-                                    <span className="px-3 py-1 bg-surface border border-white/10 rounded-full text-xs text-slate-400 font-mono">
-                                        {activeCard.id}
-                                    </span>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
         </div>
     );
 };
