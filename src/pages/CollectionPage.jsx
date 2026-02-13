@@ -4,6 +4,7 @@ import { fetchSets, fetchCardsBySet } from '../api/pokemon';
 import { useCollection } from '../hooks/useCollection';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter, ShieldCheck, X } from 'lucide-react';
+import CardImage from '../components/CardImage';
 
 const CollectionPage = () => {
     const location = useLocation();
@@ -181,11 +182,11 @@ const CollectionPage = () => {
                                         className={`relative aspect-[2/3] rounded-lg overflow-hidden cursor-pointer transition-all active:scale-95 ${!owned ? 'grayscale opacity-40 brightness-50' : 'card-shadow ring-1 ring-white/10'
                                             }`}
                                     >
-                                        <img
+                                        <CardImage
                                             src={card.image ? `${card.image}/low.webp` : ''}
                                             alt={card.name}
-                                            className="w-full h-full object-cover"
-                                            loading="lazy"
+                                            className="w-full h-full"
+                                            imageClassName="object-cover"
                                         />
 
                                         {owned && count > 1 && (
@@ -231,10 +232,11 @@ const CollectionPage = () => {
                             </button>
 
                             <div className="rounded-3xl overflow-hidden shadow-2xl border border-white/10">
-                                <img
+                                <CardImage
                                     src={activeCard.image ? `${activeCard.image}/high.webp` : ''}
                                     alt={activeCard.name}
                                     className="w-full h-auto"
+                                    imageClassName="object-contain"
                                 />
                             </div>
 

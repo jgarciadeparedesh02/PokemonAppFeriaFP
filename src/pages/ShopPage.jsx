@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchSets } from '../api/pokemon';
+import { fetchSets, preparePack } from '../api/pokemon';
 import { motion } from 'framer-motion';
+import CardImage from '../components/CardImage';
+import { preloadImages } from '../utils/preload';
 
 const ShopPage = () => {
     const [sets, setSets] = useState([]);
@@ -57,14 +59,19 @@ const ShopPage = () => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.05 }}
-                            onClick={() => navigate(`/open/${set.id}`, { state: { set } })}
+                            onClick={() => {
+                                // Start fetching cards immediately (internally cached)
+                                preparePack(set.id);
+                                navigate(`/open/${set.id}`, { state: { set } });
+                            }}
                             className="group relative bg-surface rounded-2xl overflow-hidden border border-white/5 hover:border-primary/50 transition-all duration-300 active:scale-95 cursor-pointer"
                         >
                             <div className="aspect-[4/3] p-4 flex items-center justify-center bg-gradient-to-br from-white/10 to-transparent">
-                                <img
+                                <CardImage
                                     src={set.boosters?.[0]?.artwork_front ? `${set.boosters[0].artwork_front}.webp` : set.logo ? `${set.logo}.webp` : ''}
                                     alt={set.name}
-                                    className="max-w-full max-h-full object-contain filter drop-shadow-xl group-hover:scale-110 transition-transform duration-500"
+                                    className="max-w-full max-h-full filter drop-shadow-xl group-hover:scale-110 transition-transform duration-500"
+                                    imageClassName="object-contain"
                                 />
                             </div>
                             <div className="p-3 border-t border-white/5 bg-black/20 backdrop-blur-sm">

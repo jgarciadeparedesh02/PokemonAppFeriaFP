@@ -153,3 +153,23 @@ export const fetchRandomCardsFromSet = async (setId, count = 10) => {
         return [];
     }
 };
+
+let nextPackPromise = null;
+let nextPackSetId = null;
+
+export const preparePack = (setId) => {
+    nextPackSetId = setId;
+    nextPackPromise = fetchRandomCardsFromSet(setId);
+    return nextPackPromise;
+};
+
+export const getPreparedPack = (setId) => {
+    if (nextPackSetId === setId) {
+        const promise = nextPackPromise;
+        // Limpiamos después de consumirlo
+        nextPackPromise = null;
+        nextPackSetId = null;
+        return promise;
+    }
+    return null;
+};
