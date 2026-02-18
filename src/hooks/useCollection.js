@@ -1,22 +1,60 @@
 import { useState, useEffect } from 'react';
 
 export const useCollection = () => {
-    const [inventory, setInventory] = useState(() => {
+    const [data, setData] = useState(() => {
         const saved = localStorage.getItem('myCollection');
-        return saved ? JSON.parse(saved).inventory : {};
+        const defaultData = { inventory: {}, history: [] };
+        if (!saved) return defaultData;
+
+        try {
+            const parsed = JSON.parse(saved);
+            // Migración si solo existía inventory
+            return {
+                inventory: parsed.inventory || {},
+                history: parsed.history || []
+            };
+        } catch (e) {
+            return defaultData;
+        }
     });
 
-    useEffect(() => {
-        localStorage.setItem('myCollection', JSON.stringify({ inventory }));
-    }, [inventory]);
+    const inventory = data.inventory;
+    const history = data.history;
 
-    const addCardsToCollection = (newCards) => {
-        setInventory(prev => {
-            const updated = { ...prev };
+    useEffect(() => {
+        localStorage.setItem('myCollection', JSON.stringify(data));
+    }, [data]);
+
+    const addCardsToCollection = (newCards, setInfo) => {
+        setData(prev => {
+            const updatedInventory = { ...prev.inventory };
             newCards.forEach(card => {
-                updated[card.id] = (updated[card.id] || 0) + 1;
+                updatedInventory[card.id] = (updatedInventory[card.id] || 0) + 1;
             });
-            return updated;
+
+            const packTotal = newCards.reduce((sum, c) => sum + (c.pricing?.cardmarket?.avg || 0), 0).toFixed(2);
+
+            // Evitar duplicados exactos en menos de 2 segundos (clic doble)
+            const lastEntry = prev.history[0];
+            if (lastEntry &&
+                lastEntry.totalValue === packTotal &&
+                (Date.now() - lastEntry.id) < 2000) {
+                return prev;
+            }
+
+            const newHistoryEntry = {
+                id: Date.now(),
+                timestamp: new Date().toISOString(),
+                setName: setInfo?.name || 'Set Desconocido',
+                setLogo: setInfo?.logo,
+                cards: newCards,
+                totalValue: packTotal
+            };
+
+            return {
+                inventory: updatedInventory,
+                history: [newHistoryEntry, ...prev.history].slice(0, 50) // Guardamos últimos 50
+            };
         });
     };
 
@@ -28,5 +66,5 @@ export const useCollection = () => {
         return inventory[cardId] || 0;
     };
 
-    return { inventory, addCardsToCollection, hasCard, getCardCount };
+    return { inventory, history, addCardsToCollection, hasCard, getCardCount };
 };

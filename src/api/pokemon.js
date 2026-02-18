@@ -30,6 +30,16 @@ export const fetchSets = async () => {
     }
 };
 
+export const fetchCardById = async (cardId) => {
+    try {
+        const response = await fetch(`${API_URL}/cards/${cardId}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching card details:', cardId, error);
+        return null;
+    }
+};
+
 export const fetchCardsBySet = async (setId) => {
     try {
         const response = await fetch(`${API_URL}/sets/${setId}`);
@@ -152,4 +162,24 @@ export const fetchRandomCardsFromSet = async (setId, count = 10) => {
         console.error('Error fetching pack cards:', error);
         return [];
     }
+};
+
+let nextPackPromise = null;
+let nextPackSetId = null;
+
+export const preparePack = (setId) => {
+    nextPackSetId = setId;
+    nextPackPromise = fetchRandomCardsFromSet(setId);
+    return nextPackPromise;
+};
+
+export const getPreparedPack = (setId) => {
+    if (nextPackSetId === setId) {
+        const promise = nextPackPromise;
+        // Limpiamos después de consumirlo
+        nextPackPromise = null;
+        nextPackSetId = null;
+        return promise;
+    }
+    return null;
 };

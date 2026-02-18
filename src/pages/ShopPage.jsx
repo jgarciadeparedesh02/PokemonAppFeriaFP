@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+<<<<<<< HEAD
 import { fetchSets } from '../api/pokemon';
 import { useSound } from '../hooks/useSound';
+=======
+import { fetchSets, preparePack } from '../api/pokemon';
+>>>>>>> 718a9a8edbb68256868c03fb860a2875c478ef2e
 import { motion } from 'framer-motion';
+import CardImage from '../components/CardImage';
+import BrandHeader from '../components/BrandHeader';
+import { preloadImages } from '../utils/preload';
 
 const ShopPage = () => {
     const [sets, setSets] = useState([]);
@@ -33,11 +40,12 @@ const ShopPage = () => {
     }
 
     return (
-        <div className="px-4 pt-6 pb-24">
+        <div className="px-4 pt-4 pb-24">
+            <BrandHeader />
             <header className="mb-8">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
                     Sobres de Mejora
-                </h1>
+                </h2>
                 <p className="text-slate-400 mt-1">Selecciona una expansión para abrir sobres</p>
             </header>
 
@@ -60,16 +68,22 @@ const ShopPage = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.05 }}
                             onClick={() => {
+<<<<<<< HEAD
                                 playSound('swipe', 0.2);
+=======
+                                // Start fetching cards immediately (internally cached)
+                                preparePack(set.id);
+>>>>>>> 718a9a8edbb68256868c03fb860a2875c478ef2e
                                 navigate(`/open/${set.id}`, { state: { set } });
                             }}
                             className="group relative bg-surface rounded-2xl overflow-hidden border border-white/5 hover:border-primary/50 transition-all duration-300 active:scale-95 cursor-pointer"
                         >
                             <div className="aspect-[4/3] p-4 flex items-center justify-center bg-gradient-to-br from-white/10 to-transparent">
-                                <img
+                                <CardImage
                                     src={set.boosters?.[0]?.artwork_front ? `${set.boosters[0].artwork_front}.webp` : set.logo ? `${set.logo}.webp` : ''}
                                     alt={set.name}
-                                    className="max-w-full max-h-full object-contain filter drop-shadow-xl group-hover:scale-110 transition-transform duration-500"
+                                    className="max-w-full max-h-full filter drop-shadow-xl group-hover:scale-110 transition-transform duration-500"
+                                    imageClassName="object-contain"
                                 />
                             </div>
                             <div className="p-3 border-t border-white/5 bg-black/20 backdrop-blur-sm">

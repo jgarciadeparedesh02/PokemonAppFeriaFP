@@ -52,6 +52,15 @@
     @apply opacity-100;
     animation: holo-shine 2s infinite linear;
   }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
 }
 
 @keyframes holo-shine {
