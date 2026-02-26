@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter, ShieldCheck, X } from 'lucide-react';
 import CardImage from '../components/CardImage';
 import BrandHeader from '../components/BrandHeader';
+import ValueChart from '../components/ValueChart';
 
 const CollectionPage = () => {
     const location = useLocation();
@@ -18,7 +19,9 @@ const CollectionPage = () => {
     const [activeCard, setActiveCard] = useState(null);
     const [fullCardDetails, setFullCardDetails] = useState(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
-    const { inventory, getCardCount } = useCollection();
+    const [filterType, setFilterType] = useState('All');
+    const [sortBy, setSortBy] = useState('number'); // number, name, price, hp
+    const { inventory, getCardCount, valueSnapshots } = useCollection();
 
     const formatRarity = (rarity) => {
         if (!rarity) return 'Común';
@@ -78,10 +81,26 @@ const CollectionPage = () => {
     }, [selectedSet, sets]);
 
     const filteredCards = useMemo(() => {
-        return cards.filter(card =>
+        let result = cards.filter(card =>
             card.name.toLowerCase().includes(search.toLowerCase())
         );
-    }, [cards, search]);
+
+        if (filterType !== 'All') {
+            result = result.filter(card => card.types?.includes(filterType));
+        }
+
+        result.sort((a, b) => {
+            if (sortBy === 'number') {
+                return parseInt(a.localId || 0) - parseInt(b.localId || 0);
+            }
+            if (sortBy === 'name') return a.name.localeCompare(b.name);
+            if (sortBy === 'hp') return (b.hp || 0) - (a.hp || 0);
+            if (sortBy === 'price') return (b.pricing?.cardmarket?.avg || 0) - (a.pricing?.cardmarket?.avg || 0);
+            return 0;
+        });
+
+        return result;
+    }, [cards, search, filterType, sortBy]);
 
     const stats = useMemo(() => {
         if (cards.length === 0) return { collected: 0, total: 0, totalValue: 0 };
@@ -130,7 +149,7 @@ const CollectionPage = () => {
     }, [cards, inventory]);
 
     return (
-        <div className="px-4 pt-6 pb-24 min-h-screen">
+        <div className="px-4 pt-6 pb-24">
             {/* Modal Detail */}
             <AnimatePresence>
                 {activeCard && (
@@ -138,7 +157,7 @@ const CollectionPage = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/90 backdrop-blur-sm"
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md"
                         onClick={() => setActiveCard(null)}
                     >
                         <motion.div
@@ -156,12 +175,13 @@ const CollectionPage = () => {
                                 <X size={32} />
                             </button>
 
-                            <div className="rounded-3xl overflow-hidden shadow-2xl border border-white/10 aspect-[2/3] bg-surface relative">
+                            <div className="rounded-3xl overflow-hidden card-shadow border border-white/20 aspect-[63/88] bg-surface relative">
                                 <CardImage
                                     src={activeCard.image ? `${activeCard.image}/high.webp` : ''}
                                     alt={activeCard.name}
                                     className="w-full h-full"
                                     imageClassName="object-contain"
+                                    isRare={['Rare', 'Rare Holo', 'Holo Rare', 'Ultra Rare', 'Secret Rare'].some(r => activeCard.rarity?.includes(r))}
                                 />
                                 {loadingDetails && (
                                     <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] flex items-center justify-center">
@@ -215,18 +235,51 @@ const CollectionPage = () => {
                             placeholder="Buscar expansión..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full bg-surface border border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:border-primary/50 transition-colors"
+                            className="w-full glass rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:border-primary/50 transition-colors"
                         />
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 gap-3 mt-4">
-                        <div className="bg-surface/50 border border-white/5 rounded-2xl p-3">
-                            <p className="text-[10px] uppercase text-slate-500 font-bold mb-1">Cartas Obtenidas</p>
-                            <p className="text-xl font-black text-white">{stats.collected} / {stats.total}</p>
+                    <div className="flex flex-col gap-4 mt-4">
+                        <ValueChart data={valueSnapshots} />
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="glass-dark rounded-2xl p-3">
+                                <p className="text-[10px] uppercase text-slate-400 font-bold mb-1">Cartas Obtenidas</p>
+                                <p className="text-xl font-black text-white">{stats.collected} / {stats.total}</p>
+                            </div>
+                            <div className="bg-green-500/5 border border-green-500/10 backdrop-blur-md rounded-2xl p-3">
+                                <p className="text-[10px] uppercase text-green-400 font-bold mb-1">Valor Estimado</p>
+                                <p className="text-xl font-black text-green-400">{expansionValue} €</p>
+                            </div>
                         </div>
-                        <div className="bg-green-500/5 border border-green-500/10 rounded-2xl p-3">
-                            <p className="text-[10px] uppercase text-green-500/70 font-bold mb-1">Valor Estimado</p>
-                            <p className="text-xl font-black text-green-400">{expansionValue} €</p>
+
+                        {/* Filtros Rápidos */}
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                            {['All', 'Fire', 'Water', 'Grass', 'Lightning', 'Psychic', 'Fighting', 'Colorless'].map(type => (
+                                <button
+                                    key={type}
+                                    onClick={() => setFilterType(type)}
+                                    className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase transition-all whitespace-nowrap ${filterType === type
+                                        ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                                        : 'glass text-slate-400 hover:text-white'
+                                        }`}
+                                >
+                                    {type === 'All' ? 'Todos' : type}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="flex justify-between items-center bg-black/20 rounded-xl p-1 border border-white/5">
+                            {['number', 'name', 'price', 'hp'].map(sort => (
+                                <button
+                                    key={sort}
+                                    onClick={() => setSortBy(sort)}
+                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${sortBy === sort ? 'bg-white/10 text-white' : 'text-slate-500'
+                                        }`}
+                                >
+                                    {sort === 'number' ? '#' : sort === 'name' ? 'Nombre' : sort === 'price' ? 'Precio' : 'HP'}
+                                </button>
+                            ))}
                         </div>
                     </div>
                 )}
@@ -245,9 +298,9 @@ const CollectionPage = () => {
                                 key={set.id}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => setSelectedSet(set.id)}
-                                className="bg-surface rounded-2xl p-4 border border-white/5 flex items-center gap-4 cursor-pointer hover:bg-white/5 transition-colors"
+                                className="glass rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-white/5 transition-colors card-shadow"
                             >
-                                <div className="w-16 h-16 bg-black/20 rounded-xl flex items-center justify-center p-2 flex-shrink-0">
+                                <div className="w-16 h-16 glass-dark rounded-xl flex items-center justify-center p-2 flex-shrink-0">
                                     {set.logo ? (
                                         <img src={`${set.logo}.webp`} alt="" className="max-w-full max-h-full object-contain" />
                                     ) : (
@@ -294,7 +347,7 @@ const CollectionPage = () => {
                                         key={card.id}
                                         layoutId={card.id}
                                         onClick={() => setActiveCard(card)}
-                                        className={`relative aspect-[2/3] rounded-lg overflow-hidden cursor-pointer transition-all active:scale-95 ${!owned ? 'grayscale opacity-40 brightness-50' : 'card-shadow ring-1 ring-white/10'
+                                        className={`relative aspect-[63/88] rounded-lg overflow-hidden cursor-pointer transition-all active:scale-95 ${!owned ? 'grayscale opacity-40 brightness-50' : 'card-shadow ring-1 ring-white/10'
                                             }`}
                                     >
                                         <CardImage
@@ -302,6 +355,7 @@ const CollectionPage = () => {
                                             alt={card.name}
                                             className="w-full h-full"
                                             imageClassName="object-cover"
+                                            isRare={owned && (card.rarity?.includes('Rare') || card.rarity?.includes('Rara'))}
                                         />
 
                                         {owned && count > 1 && (
@@ -319,7 +373,7 @@ const CollectionPage = () => {
                                         )}
 
                                         {owned && (card.rarity?.includes('Rare') || card.rarity?.includes('Rara')) && (
-                                            <div className="absolute inset-0 holo-effect opacity-30" />
+                                            <div className="absolute inset-0 pointer-events-none" />
                                         )}
                                     </motion.div>
                                 );

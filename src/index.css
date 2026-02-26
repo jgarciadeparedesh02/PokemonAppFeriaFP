@@ -1,56 +1,70 @@
 @import "tailwindcss";
 
 @theme {
-  --color-pokemon-red: #ff0000;
+  --color-pokemon-red: #ff3e3e;
   --color-pokemon-blue: #3b4cca;
   --color-pokemon-yellow: #ffde00;
   --color-pokemon-gold: #b3a125;
-  
-  --color-background: #0a0a0c;
-  --color-surface: #16161a;
-  --color-surface-hover: #1e1e24;
+
+  --color-background: #0a0c1a;
+  /* Marino profundo en lugar de casi negro */
+  --color-surface: rgba(30, 41, 59, 0.8);
+  --color-surface-hover: rgba(51, 65, 85, 0.9);
   --color-primary: #ec3d46;
-  --color-secondary: #2563eb;
+  --color-secondary: #3b4cca;
+  --color-accent: #6366f1;
 }
 
 @layer base {
   body {
-    @apply bg-background text-slate-100 antialiased selection:bg-primary/30;
+    @apply text-slate-100 antialiased selection:bg-primary/30 min-h-screen;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-tap-highlight-color: transparent;
+    background-color: var(--color-background);
+    background-image:
+      radial-gradient(at 0% 0%, rgba(236, 61, 70, 0.25) 0px, transparent 60%),
+      radial-gradient(at 100% 0%, rgba(59, 76, 202, 0.25) 0px, transparent 60%),
+      radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.2) 0px, transparent 60%),
+      radial-gradient(at 0% 100%, rgba(236, 61, 70, 0.15) 0px, transparent 60%);
+    background-attachment: fixed;
   }
 }
 
 @layer utilities {
   .glass {
-    @apply bg-white/5 backdrop-blur-md border border-white/10;
+    @apply backdrop-blur-xl border border-white/10;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
   }
-  
+
+  .glass-dark {
+    @apply backdrop-blur-xl border border-white/5;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.1) 100%);
+  }
+
   .card-shadow {
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
   }
-  
+
   .holo-effect {
     position: relative;
     overflow: hidden;
   }
-  
+
   .holo-effect::after {
     content: "";
-    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
-    background: linear-gradient(
-      125deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.1) 45%,
-      rgba(255, 255, 255, 0.3) 50%,
-      rgba(255, 255, 255, 0.1) 55%,
-      transparent 100%
-    );
+    @apply absolute inset-0 opacity-0 transition-opacity duration-500;
+    background: linear-gradient(125deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.1) 40%,
+        rgba(255, 255, 255, 0.4) 50%,
+        rgba(255, 255, 255, 0.1) 60%,
+        transparent 100%);
+    z-index: 10;
   }
-  
+
   .holo-effect:hover::after {
     @apply opacity-100;
-    animation: holo-shine 2s infinite linear;
+    animation: holo-shine 1.5s infinite linear;
   }
 
   .no-scrollbar::-webkit-scrollbar {
@@ -58,20 +72,37 @@
   }
 
   .no-scrollbar {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
   }
 }
 
 @keyframes holo-shine {
-  0% { transform: translateX(-100%) translateY(-100%); }
-  100% { transform: translateX(100%) translateY(100%); }
+  0% {
+    transform: translateX(-150%) translateY(-150%) rotate(25deg);
+  }
+
+  100% {
+    transform: translateX(150%) translateY(150%) rotate(25deg);
+  }
 }
 
 @keyframes pack-shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px) rotate(-1deg); }
-  75% { transform: translateX(5px) rotate(1deg); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-5px) rotate(-1deg);
+  }
+
+  75% {
+    transform: translateX(5px) rotate(1deg);
+  }
 }
 
 .animate-shake {

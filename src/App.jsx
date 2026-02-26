@@ -14,7 +14,7 @@ const AppContent = () => {
   const hideNav = location.pathname.startsWith('/open');
 
   return (
-    <div className="bg-background min-h-screen font-sans selection:bg-primary/30">
+    <div className="min-h-screen font-sans selection:bg-primary/30">
       <main className="max-w-md mx-auto relative min-h-screen">
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<ShopPage />} />
