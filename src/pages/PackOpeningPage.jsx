@@ -74,6 +74,26 @@ const PackOpeningPage = () => {
     const [ambientColor, setAmbientColor] = useState('transparent');
     const [isEpicPull, setIsEpicPull] = useState(false);
     const [isCheatMode, setIsCheatMode] = useState(false);
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+    const handleMouseMove = (e) => {
+        if (phase !== 'stack') return;
+        const { clientX, clientY } = e;
+        const { innerWidth, innerHeight } = window;
+        const x = (clientX - innerWidth / 2) / (innerWidth / 2);
+        const y = (clientY - innerHeight / 2) / (innerHeight / 2);
+        setMousePos({ x, y });
+    };
+
+    const handleTouchMove = (e) => {
+        if (phase !== 'stack') return;
+        const touch = e.touches[0];
+        const { clientX, clientY } = touch;
+        const { innerWidth, innerHeight } = window;
+        const x = (clientX - innerWidth / 2) / (innerWidth / 2);
+        const y = (clientY - innerHeight / 2) / (innerHeight / 2);
+        setMousePos({ x, y });
+    };
 
     const totalPackValue = useMemo(() => {
         if (!cards.length) return "0.00";
@@ -226,7 +246,11 @@ const PackOpeningPage = () => {
     }
 
     return (
-        <div className="fixed inset-0 bg-black z-[100] flex justify-center">
+        <div
+            className="fixed inset-0 bg-black z-[100] flex justify-center overflow-hidden"
+            onMouseMove={handleMouseMove}
+            onTouchMove={handleTouchMove}
+        >
             {/* Ambient Lighting Background */}
             <motion.div
                 animate={{ backgroundColor: ambientColor }}
@@ -356,9 +380,16 @@ const PackOpeningPage = () => {
                                                 opacity: 1,
                                                 y: -idx * 2,
                                                 rotate: isTop ? 0 : (Math.random() * 6 - 3),
+                                                rotateX: isTop ? (mousePos.y * -15) : 0,
+                                                rotateY: isTop ? (mousePos.x * 15) : 0,
                                                 zIndex: zIndex
                                             }}
-                                            transition={{
+                                            transition={isTop ? {
+                                                type: "spring",
+                                                stiffness: 150,
+                                                damping: 20,
+                                                mass: 0.1
+                                            } : {
                                                 type: "spring",
                                                 stiffness: 300,
                                                 damping: 20
@@ -366,17 +397,33 @@ const PackOpeningPage = () => {
                                             className={cn(
                                                 "absolute w-64 h-92 bg-surface rounded-xl overflow-hidden shadow-2xl cursor-pointer touch-none",
                                                 "border border-white/10",
-                                                isTop && "ring-2 ring-primary/50"
+                                                isTop && "ring-2 ring-primary/50 shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
                                             )}
+                                            style={{
+                                                transformStyle: "preserve-3d",
+                                                perspective: "1000px"
+                                            }}
                                             onClick={() => {
                                                 if (isTop) handleCardTap();
                                             }}
                                         >
-                                            <CardImage
-                                                src={card.image ? `${card.image}/high.webp` : ''}
-                                                alt={card.name}
-                                                imageClassName="object-cover pointer-events-none"
-                                            />
+                                            <div className="relative w-full h-full pointer-events-none">
+                                                <CardImage
+                                                    src={card.image ? `${card.image}/high.webp` : ''}
+                                                    alt={card.name}
+                                                    imageClassName="object-cover"
+                                                />
+
+                                                {/* Flare highlight for tilt */}
+                                                {isTop && (
+                                                    <motion.div
+                                                        animate={{
+                                                            background: `radial-gradient(circle at ${50 + mousePos.x * 50}% ${50 + mousePos.y * 50}%, rgba(255,255,255,0.2) 0%, transparent 60%)`
+                                                        }}
+                                                        className="absolute inset-0 z-10 pointer-events-none"
+                                                    />
+                                                )}
+                                            </div>
 
                                             {/* Rare effects */}
                                             {['Rare', 'Rare Holo', 'Holo Rare', 'Ultra Rare', 'Secret Rare', 'Rare Ultra', 'Rare Secret', 'Holo Rare V', 'Holo Rare VMAX', 'Holo Rare VSTAR', 'Hyper rare', 'Illustration rare', 'Special illustration rare', 'Double rare', 'Rara', 'Holo Rara', 'Rara Doble', 'Rara Ultra', 'Rara Secreto', 'Rara Ilustración', 'Rara Ilustración Especial', 'Rara Radiante'].some(r => card.rarity?.includes(r)) && isTop && (
