@@ -10,6 +10,7 @@ import { twMerge } from 'tailwind-merge';
 import CardImage from '../components/CardImage';
 import BrandHeader from '../components/BrandHeader';
 import { preloadImages } from '../utils/preload';
+import confetti from 'canvas-confetti';
 
 function cn(...inputs) {
     return twMerge(clsx(inputs));
@@ -71,6 +72,8 @@ const PackOpeningPage = () => {
     const [resetToken, setResetToken] = useState(0);
     const [activeCard, setActiveCard] = useState(null);
     const [ambientColor, setAmbientColor] = useState('transparent');
+    const [isEpicPull, setIsEpicPull] = useState(false);
+    const [isCheatMode, setIsCheatMode] = useState(false);
 
     const totalPackValue = useMemo(() => {
         if (!cards.length) return "0.00";
@@ -126,8 +129,27 @@ const PackOpeningPage = () => {
             const effects = getRarityEffects(cards[currentIndex].rarity);
             setAmbientColor(effects.color);
             playRaritySound(effects.sound);
+
+            // Check if it's a BIG hit (high price OR high rarity)
+            const price = parseFloat(cards[currentIndex].pricing?.cardmarket?.avg || 0);
+            const isSecret = (cards[currentIndex].rarity || '').toLowerCase().includes('secret') || (cards[currentIndex].rarity || '').toLowerCase().includes('special');
+
+            if (price > 20 || isSecret) {
+                setIsEpicPull(true);
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#FFD700', '#FFFFFF', '#FF4500'],
+                    zIndex: 300
+                });
+                playSound('rare', 1.0);
+            } else {
+                setIsEpicPull(false);
+            }
         } else if (phase === 'finished' || phase === 'pack') {
             setAmbientColor('transparent');
+            setIsEpicPull(false);
         }
     }, [currentIndex, phase, cards]);
 
@@ -135,30 +157,20 @@ const PackOpeningPage = () => {
         if (phase !== 'pack' || isShaking) return;
 
         setIsShaking(true);
-<<<<<<< HEAD
         playSound('tear', 0.8);
-=======
-        // Play tearing sound?
-        new Audio('https://assets.mixkit.co/active_storage/sfx/1103/1103-preview.mp3').play().catch(() => { });
->>>>>>> 718a9a8edbb68256868c03fb860a2875c478ef2e
 
         setTimeout(() => {
             setIsShaking(false);
             setPhase('tearing');
             setTimeout(() => {
                 setPhase('stack');
-<<<<<<< HEAD
-                // Save to collection immediately when revealed
-                addCardsToCollection(cards);
+                // Guardar en la colección con la información del set
+                addCardsToCollection(cards, setInfo);
 
-                // Check if the FIRST card is rare
+                // Comprobar si la PRIMERA carta es rara
                 if (cards.length > 0 && isRare(cards[0].rarity)) {
                     setTimeout(() => playSound('rare', 0.6), 200);
                 }
-=======
-                // Save to collection and history
-                addCardsToCollection(cards, setInfo);
->>>>>>> 718a9a8edbb68256868c03fb860a2875c478ef2e
             }, 800);
         }, 500);
     };
@@ -232,8 +244,23 @@ const PackOpeningPage = () => {
                         <X size={24} />
                     </button>
 
-                    <div className="scale-75 origin-top translate-y-[-10px]">
+                    <div
+                        className="scale-75 origin-top translate-y-[-10px] cursor-help"
+                        onClick={() => {
+                            setIsCheatMode(!isCheatMode);
+                            if (!isCheatMode) confetti({ particleCount: 20, spread: 30, origin: { y: 0.1 } });
+                        }}
+                    >
                         <BrandHeader />
+                        {isCheatMode && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[8px] font-black text-yellow-500 bg-black/80 px-2 py-0.5 rounded-full border border-yellow-500/50 uppercase tracking-tighter"
+                            >
+                                Luck Boost Active
+                            </motion.div>
+                        )}
                     </div>
 
                     {phase === 'stack' && (
@@ -380,18 +407,35 @@ const PackOpeningPage = () => {
                                     <motion.div
                                         key={`reveal-price-${currentIndex}`}
                                         initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        animate={{
+                                            opacity: 1,
+                                            scale: isEpicPull ? [1, 1.1, 1] : 1,
+                                            y: 0,
+                                            boxShadow: isEpicPull ? "0 0 40px rgba(234, 179, 8, 0.4)" : "none"
+                                        }}
+                                        transition={{
+                                            scale: { repeat: isEpicPull ? Infinity : 0, duration: 1.5 }
+                                        }}
                                         exit={{ opacity: 0, scale: 0.9, y: -10 }}
-                                        className="mb-8 bg-black/40 backdrop-blur-2xl border border-white/10 px-8 py-3 rounded-3xl flex flex-col items-center gap-0 shadow-2xl z-20"
+                                        className={cn(
+                                            "mb-8 bg-black/40 backdrop-blur-2xl border border-white/10 px-8 py-3 rounded-3xl flex flex-col items-center gap-0 shadow-2xl z-20",
+                                            isEpicPull && "border-yellow-500/50 bg-yellow-500/10"
+                                        )}
                                     >
-                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">
-                                            Valor de mercado
+                                        <span className={cn(
+                                            "text-[10px] font-bold uppercase tracking-[0.2em]",
+                                            isEpicPull ? "text-yellow-400" : "text-slate-400"
+                                        )}>
+                                            {isEpicPull ? "¡SÚPER PULL! Valor de mercado" : "Valor de mercado"}
                                         </span>
-                                        <div className="flex items-baseline gap-1 text-green-400">
+                                        <div className={cn(
+                                            "flex items-baseline gap-1",
+                                            isEpicPull ? "text-yellow-400" : "text-green-400"
+                                        )}>
                                             <span className="text-3xl font-black drop-shadow-[0_0_10px_rgba(74,222,128,0.4)]">
                                                 {cards[currentIndex].pricing?.cardmarket?.avg || '---'}
                                             </span>
-                                            <span className="text-sm font-bold text-green-500/80">€</span>
+                                            <span className="text-sm font-bold opacity-80">€</span>
                                         </div>
                                     </motion.div>
                                 )}

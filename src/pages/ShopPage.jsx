@@ -1,11 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-<<<<<<< HEAD
-import { fetchSets } from '../api/pokemon';
-import { useSound } from '../hooks/useSound';
-=======
 import { fetchSets, preparePack } from '../api/pokemon';
->>>>>>> 718a9a8edbb68256868c03fb860a2875c478ef2e
+import { useSound } from '../hooks/useSound';
 import { motion } from 'framer-motion';
 import CardImage from '../components/CardImage';
 import BrandHeader from '../components/BrandHeader';
@@ -68,12 +64,9 @@ const ShopPage = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.05 }}
                             onClick={() => {
-<<<<<<< HEAD
                                 playSound('swipe', 0.2);
-=======
                                 // Start fetching cards immediately (internally cached)
                                 preparePack(set.id);
->>>>>>> 718a9a8edbb68256868c03fb860a2875c478ef2e
                                 navigate(`/open/${set.id}`, { state: { set } });
                             }}
                             className="group relative bg-surface rounded-2xl overflow-hidden border border-white/5 hover:border-primary/50 transition-all duration-300 active:scale-95 cursor-pointer"

@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
+import { syncPullToGlobal } from '../supabase';
 
 export const useCollection = () => {
     const [data, setData] = useState(() => {
         const saved = localStorage.getItem('myCollection');
-        const defaultData = { inventory: {}, history: [] };
+        const defaultData = { inventory: {}, history: [], profile: { trainerName: '' } };
         if (!saved) return defaultData;
 
         try {
             const parsed = JSON.parse(saved);
-            // Migración si solo existía inventory
             return {
                 inventory: parsed.inventory || {},
-                history: parsed.history || []
+                history: parsed.history || [],
+                profile: parsed.profile || { trainerName: '' }
             };
         } catch (e) {
             return defaultData;
@@ -20,10 +21,18 @@ export const useCollection = () => {
 
     const inventory = data.inventory;
     const history = data.history;
+    const profile = data.profile;
 
     useEffect(() => {
         localStorage.setItem('myCollection', JSON.stringify(data));
     }, [data]);
+
+    const setTrainerName = (name) => {
+        setData(prev => ({
+            ...prev,
+            profile: { ...prev.profile, trainerName: name }
+        }));
+    };
 
     const addCardsToCollection = (newCards, setInfo) => {
         setData(prev => {
@@ -32,9 +41,20 @@ export const useCollection = () => {
                 updatedInventory[card.id] = (updatedInventory[card.id] || 0) + 1;
             });
 
+            // Sincronizar pulls potentes (> 5€ ó Raras) con el Ranking GLOBAL
+            if (prev.profile.trainerName) {
+                newCards.forEach(card => {
+                    const price = card.pricing?.cardmarket?.avg || 0;
+                    const isRare = ['Rare', 'Ultra', 'Secret', 'Illustration', 'VMAX', 'VSTAR', 'Hyper'].some(r => card.rarity?.includes(r));
+
+                    if (price > 5 || isRare) {
+                        syncPullToGlobal(prev.profile.trainerName, card, setInfo);
+                    }
+                });
+            }
+
             const packTotal = newCards.reduce((sum, c) => sum + (c.pricing?.cardmarket?.avg || 0), 0).toFixed(2);
 
-            // Evitar duplicados exactos en menos de 2 segundos (clic doble)
             const lastEntry = prev.history[0];
             if (lastEntry &&
                 lastEntry.totalValue === packTotal &&
@@ -52,8 +72,9 @@ export const useCollection = () => {
             };
 
             return {
+                ...prev,
                 inventory: updatedInventory,
-                history: [newHistoryEntry, ...prev.history].slice(0, 50) // Guardamos últimos 50
+                history: [newHistoryEntry, ...prev.history].slice(0, 50)
             };
         });
     };
@@ -66,5 +87,5 @@ export const useCollection = () => {
         return inventory[cardId] || 0;
     };
 
-    return { inventory, history, addCardsToCollection, hasCard, getCardCount };
+    return { inventory, history, profile, setTrainerName, addCardsToCollection, hasCard, getCardCount };
 };

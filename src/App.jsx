@@ -5,7 +5,9 @@ import ShopPage from './pages/ShopPage';
 import CollectionPage from './pages/CollectionPage';
 import PackOpeningPage from './pages/PackOpeningPage';
 import HistoryPage from './pages/HistoryPage';
+import RankingPage from './pages/RankingPage';
 import BottomNav from './components/BottomNav';
+import TrainerModal from './components/TrainerModal';
 
 const AppContent = () => {
   const location = useLocation();
@@ -21,9 +23,11 @@ const AppContent = () => {
           <Route path="/collection" element={<CollectionPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/open/:setId" element={<PackOpeningPage />} />
+          <Route path="/ranking" element={<RankingPage />} />
         </Routes>
 
         {!hideNav && <BottomNav />}
+        <TrainerModal />
       </main>
     </div>
   );
