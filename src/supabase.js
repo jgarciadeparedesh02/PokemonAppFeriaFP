@@ -22,7 +22,7 @@ export const syncPullToGlobal = async (trainerName, card, setInfo) => {
                 card_name: card.name,
                 card_image: card.image,
                 rarity: card.rarity,
-                price: card.pricing?.cardmarket?.avg || 0,
+                price: parseFloat(card.pricing?.cardmarket?.avg || 0),
                 set_name: setInfo?.name,
                 set_id: setInfo?.id
             }]);
@@ -30,6 +30,48 @@ export const syncPullToGlobal = async (trainerName, card, setInfo) => {
         if (error) console.error("Error syncing to global ranking:", error);
     } catch (e) {
         console.error("Supabase sync failed:", e);
+    }
+};
+
+// Nueva función para registrar CUALQUIER sobre abierto (Meta Colectiva)
+export const logPackOpening = async (totalPrice) => {
+    if (!supabaseUrl || supabaseUrl.includes('TU_')) return;
+    try {
+        const { error } = await supabase.from('fair_packs').insert([{ total_price: parseFloat(totalPrice) }]);
+        if (error) {
+            console.error("❌ Error Supabase (Packs):", error.message);
+        } else {
+            console.log("✅ Sobre registrado con éxito en Supabase");
+        }
+    } catch (e) {
+        console.error("❌ Excepción al registrar sobre:", e);
+    }
+};
+
+export const getGlobalStats = async () => {
+    if (!supabaseUrl || supabaseUrl.includes('TU_')) return { count: 0, totalValue: 0 };
+
+    try {
+        const { data, error } = await supabase
+            .from('fair_packs')
+            .select('total_price');
+
+        if (error) {
+            console.error("Error al obtener estadísticas globales:", error.message);
+            return { count: 0, totalValue: 0 };
+        }
+
+        if (!data || data.length === 0) {
+            return { count: 0, totalValue: "0.00" };
+        }
+
+        const count = data.length;
+        const totalValue = data.reduce((sum, item) => sum + (item.total_price || 0), 0);
+
+        return { count, totalValue: totalValue.toFixed(2) };
+    } catch (e) {
+        console.error("Excepción al obtener estadísticas:", e);
+        return { count: 0, totalValue: 0 };
     }
 };
 

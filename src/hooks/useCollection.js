@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { syncPullToGlobal } from '../supabase';
+import { syncPullToGlobal, logPackOpening } from '../supabase';
 
 export const useCollection = () => {
     const [data, setData] = useState(() => {
@@ -55,25 +55,28 @@ export const useCollection = () => {
     };
 
     const addCardsToCollection = (newCards, setInfo) => {
+        const packTotal = newCards.reduce((sum, c) => sum + (c.pricing?.cardmarket?.avg || 0), 0).toFixed(2);
+
+        // --- EFECTOS SECUNDARIOS (FUERA DE SETDATA) ---
+        // 1. Registrar apertura global
+        logPackOpening(packTotal);
+
+        // 2. Sincronizar pulls potentes
+        if (profile.trainerName) {
+            newCards.forEach(card => {
+                const price = card.pricing?.cardmarket?.avg || 0;
+                const isRare = ['Rare', 'Ultra', 'Secret', 'Illustration', 'VMAX', 'VSTAR', 'Hyper'].some(r => card.rarity?.includes(r));
+                if (price > 5 || isRare) {
+                    syncPullToGlobal(profile.trainerName, card, setInfo);
+                }
+            });
+        }
+
         setData(prev => {
             const updatedInventory = { ...prev.inventory };
             newCards.forEach(card => {
                 updatedInventory[card.id] = (updatedInventory[card.id] || 0) + 1;
             });
-
-            // Sincronizar pulls potentes (> 5€ ó Raras) con el Ranking GLOBAL
-            if (prev.profile.trainerName) {
-                newCards.forEach(card => {
-                    const price = card.pricing?.cardmarket?.avg || 0;
-                    const isRare = ['Rare', 'Ultra', 'Secret', 'Illustration', 'VMAX', 'VSTAR', 'Hyper'].some(r => card.rarity?.includes(r));
-
-                    if (price > 5 || isRare) {
-                        syncPullToGlobal(prev.profile.trainerName, card, setInfo);
-                    }
-                });
-            }
-
-            const packTotal = newCards.reduce((sum, c) => sum + (c.pricing?.cardmarket?.avg || 0), 0).toFixed(2);
 
             const lastEntry = prev.history[0];
             if (lastEntry &&
