@@ -177,11 +177,14 @@ const PackOpeningPage = () => {
         if (phase !== 'pack' || isShaking) return;
 
         setIsShaking(true);
+        if (window.navigator?.vibrate) window.navigator.vibrate(50);
         playSound('tear', 0.8);
 
         setTimeout(() => {
             setIsShaking(false);
             setPhase('tearing');
+            if (window.navigator?.vibrate) window.navigator.vibrate([10, 30, 10, 50]);
+
             setTimeout(() => {
                 setPhase('stack');
                 // Guardar en la colección con la información del set
@@ -253,10 +256,27 @@ const PackOpeningPage = () => {
         >
             {/* Ambient Lighting Background */}
             <motion.div
-                animate={{ backgroundColor: ambientColor }}
-                transition={{ duration: 0.8 }}
-                className="absolute inset-0 pointer-events-none z-0 opacity-40 blur-[100px]"
+                animate={{
+                    backgroundColor: ambientColor,
+                    opacity: phase === 'stack' ? [0.4, 0.6, 0.4] : 0
+                }}
+                transition={{ duration: 0.8, repeat: Infinity }}
+                className="absolute inset-0 pointer-events-none z-0 blur-[120px]"
             />
+
+            {/* Flash Effect on Reveal */}
+            <AnimatePresence>
+                {phase === 'stack' && (
+                    <motion.div
+                        key={`flash-${currentIndex}`}
+                        initial={{ opacity: 0.8 }}
+                        animate={{ opacity: 0 }}
+                        transition={{ duration: 0.5 }}
+                        className="absolute inset-0 z-50 pointer-events-none"
+                        style={{ backgroundColor: ambientColor }}
+                    />
+                )}
+            </AnimatePresence>
 
             <div className="w-full max-w-md h-full flex flex-col items-center justify-center overflow-hidden relative z-10">
                 {/* HUD */}
@@ -395,7 +415,7 @@ const PackOpeningPage = () => {
                                                 damping: 20
                                             }}
                                             className={cn(
-                                                "absolute w-64 h-92 bg-surface rounded-xl overflow-hidden shadow-2xl cursor-pointer touch-none",
+                                                "absolute w-64 aspect-[63/88] bg-surface rounded-xl overflow-hidden shadow-2xl cursor-pointer touch-none",
                                                 "border border-white/10",
                                                 isTop && "ring-2 ring-primary/50 shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
                                             )}
@@ -412,6 +432,7 @@ const PackOpeningPage = () => {
                                                     src={card.image ? `${card.image}/high.webp` : ''}
                                                     alt={card.name}
                                                     imageClassName="object-cover"
+                                                    isRare={['Rare', 'Rare Holo', 'Holo Rare', 'Ultra Rare', 'Secret Rare', 'Rare Ultra', 'Rare Secret', 'Holo Rare V', 'Holo Rare VMAX', 'Holo Rare VSTAR', 'Hyper rare', 'Illustration rare', 'Special illustration rare', 'Double rare', 'Rara', 'Holo Rara', 'Rara Doble', 'Rara Ultra', 'Rara Secreto', 'Rara Ilustración', 'Rara Ilustración Especial', 'Rara Radiante'].some(r => card.rarity?.includes(r))}
                                                 />
 
                                                 {/* Flare highlight for tilt */}
@@ -424,11 +445,6 @@ const PackOpeningPage = () => {
                                                     />
                                                 )}
                                             </div>
-
-                                            {/* Rare effects */}
-                                            {['Rare', 'Rare Holo', 'Holo Rare', 'Ultra Rare', 'Secret Rare', 'Rare Ultra', 'Rare Secret', 'Holo Rare V', 'Holo Rare VMAX', 'Holo Rare VSTAR', 'Hyper rare', 'Illustration rare', 'Special illustration rare', 'Double rare', 'Rara', 'Holo Rara', 'Rara Doble', 'Rara Ultra', 'Rara Secreto', 'Rara Ilustración', 'Rara Ilustración Especial', 'Rara Radiante'].some(r => card.rarity?.includes(r)) && isTop && (
-                                                <div className="absolute inset-0 holo-effect pointer-events-none" />
-                                            )}
 
                                             {isTop && (
                                                 <motion.div
@@ -530,16 +546,14 @@ const PackOpeningPage = () => {
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: idx * 0.05 }}
                                         onClick={() => setActiveCard(card)}
-                                        className="relative aspect-[2/3] rounded-lg overflow-hidden card-shadow ring-1 ring-white/10 group cursor-pointer"
+                                        className="relative aspect-[63/88] rounded-lg overflow-hidden card-shadow ring-1 ring-white/10 group cursor-pointer"
                                     >
                                         <CardImage
                                             src={card.image ? `${card.image}/low.webp` : ''}
                                             alt={card.name}
                                             imageClassName="object-cover"
+                                            isRare={['Rare', 'Rare Holo', 'Holo Rare', 'Ultra Rare', 'Secret Rare'].some(r => card.rarity?.includes(r))}
                                         />
-                                        {['Rare', 'Rare Holo', 'Holo Rare', 'Ultra Rare', 'Secret Rare'].some(r => card.rarity?.includes(r)) && (
-                                            <div className="absolute inset-0 holo-effect opacity-30" />
-                                        )}
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                             <Sparkles className="text-white w-6 h-6" />
                                         </div>
@@ -589,15 +603,13 @@ const PackOpeningPage = () => {
                                     <X size={32} />
                                 </button>
 
-                                <div className="rounded-3xl overflow-hidden shadow-2xl border border-white/10 aspect-[2/3] bg-surface">
+                                <div className="rounded-3xl overflow-hidden shadow-2xl border border-white/10 aspect-[63/88] bg-surface">
                                     <CardImage
                                         src={activeCard.image ? `${activeCard.image}/high.webp` : ''}
                                         alt={activeCard.name}
                                         imageClassName="object-contain"
+                                        isRare={['Rare', 'Rare Holo', 'Holo Rare', 'Ultra Rare', 'Secret Rare'].some(r => activeCard.rarity?.includes(r))}
                                     />
-                                    {['Rare', 'Rare Holo', 'Holo Rare', 'Ultra Rare', 'Secret Rare'].some(r => activeCard.rarity?.includes(r)) && (
-                                        <div className="absolute inset-0 holo-effect pointer-events-none" />
-                                    )}
                                 </div>
 
                                 <div className="mt-6 text-center">

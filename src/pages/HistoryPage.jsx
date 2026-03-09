@@ -124,7 +124,7 @@ const HistoryPage = () => {
                                 <div className="grid grid-cols-2 gap-3">
                                     {selectedPack.cards.map((card, idx) => (
                                         <div key={`${card.id}-${idx}`} className="bg-black/20 rounded-2xl p-2 border border-white/5">
-                                            <div className="aspect-[2/3] rounded-xl overflow-hidden mb-2 relative">
+                                            <div className="aspect-[63/88] rounded-xl overflow-hidden mb-2 relative">
                                                 <CardImage
                                                     src={card.image ? `${card.image}/low.webp` : ''}
                                                     alt={card.name}

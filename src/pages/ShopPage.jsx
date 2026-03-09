@@ -69,26 +69,23 @@ const ShopPage = () => {
                                 preparePack(set.id);
                                 navigate(`/open/${set.id}`, { state: { set } });
                             }}
-                            className="group relative bg-surface rounded-2xl overflow-hidden border border-white/5 hover:border-primary/50 transition-all duration-300 active:scale-95 cursor-pointer"
+                            className="group relative glass rounded-2xl overflow-hidden hover:border-primary/50 transition-all duration-300 active:scale-95 cursor-pointer card-shadow"
                         >
-                            <div className="aspect-[4/3] p-4 flex items-center justify-center bg-gradient-to-br from-white/10 to-transparent">
+                            <div className="aspect-[4/3] p-4 flex items-center justify-center bg-gradient-to-br from-white/5 to-transparent">
                                 <CardImage
                                     src={set.boosters?.[0]?.artwork_front ? `${set.boosters[0].artwork_front}.webp` : set.logo ? `${set.logo}.webp` : ''}
                                     alt={set.name}
-                                    className="max-w-full max-h-full filter drop-shadow-xl group-hover:scale-110 transition-transform duration-500"
+                                    className="max-w-full max-h-full filter drop-shadow-2xl group-hover:scale-110 transition-transform duration-500"
                                     imageClassName="object-contain"
                                 />
                             </div>
-                            <div className="p-3 border-t border-white/5 bg-black/20 backdrop-blur-sm">
-                                <p className="text-xs font-semibold truncate text-slate-200">{set.name}</p>
+                            <div className="p-3 border-t border-white/5 bg-black/40 backdrop-blur-md">
+                                <p className="text-xs font-semibold truncate text-slate-100">{set.name}</p>
                                 <div className="flex items-center justify-between mt-1">
-                                    <span className="text-[10px] text-slate-500 uppercase">{set.id}</span>
-                                    {set.symbol && <img src={`${set.symbol}.webp`} alt="" className="h-4 w-4 grayscale opacity-50" />}
+                                    <span className="text-[10px] text-slate-400 uppercase tracking-tighter">{set.id}</span>
+                                    {set.symbol && <img src={`${set.symbol}.webp`} alt="" className="h-4 w-4 grayscale opacity-30 group-hover:opacity-60 transition-opacity" />}
                                 </div>
                             </div>
-
-                            {/* Gloss effect */}
-                            <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                         </motion.div>
                     ))
                 )}

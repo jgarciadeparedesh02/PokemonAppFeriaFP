@@ -4,15 +4,34 @@ import { syncPullToGlobal } from '../supabase';
 export const useCollection = () => {
     const [data, setData] = useState(() => {
         const saved = localStorage.getItem('myCollection');
-        const defaultData = { inventory: {}, history: [], profile: { trainerName: '' } };
+        const defaultData = { inventory: {}, history: [], profile: { trainerName: '' }, valueSnapshots: [] };
         if (!saved) return defaultData;
 
         try {
             const parsed = JSON.parse(saved);
+
+            const history = parsed.history || [];
+            let valueSnapshots = parsed.valueSnapshots || [];
+
+            // Si hay historial pero no snapshots (porque la función es nueva)
+            // Reconstruimos los snapshots acumulando los valores del historial
+            if (valueSnapshots.length === 0 && history.length > 0) {
+                let cumulativeValue = 0;
+                // El historial está de más reciente a más antiguo, lo invertimos para el gráfico
+                valueSnapshots = [...history].reverse().map(entry => {
+                    cumulativeValue += parseFloat(entry.totalValue || 0);
+                    return {
+                        date: new Date(entry.id).toLocaleTimeString(),
+                        value: parseFloat(cumulativeValue.toFixed(2))
+                    };
+                }).slice(-20);
+            }
+
             return {
                 inventory: parsed.inventory || {},
-                history: parsed.history || [],
-                profile: parsed.profile || { trainerName: '' }
+                history: history,
+                profile: parsed.profile || { trainerName: '' },
+                valueSnapshots: valueSnapshots
             };
         } catch (e) {
             return defaultData;
@@ -22,6 +41,7 @@ export const useCollection = () => {
     const inventory = data.inventory;
     const history = data.history;
     const profile = data.profile;
+    const valueSnapshots = data.valueSnapshots || [];
 
     useEffect(() => {
         localStorage.setItem('myCollection', JSON.stringify(data));
@@ -71,10 +91,20 @@ export const useCollection = () => {
                 totalValue: packTotal
             };
 
+            const newHistory = [newHistoryEntry, ...prev.history].slice(0, 50);
+
+            // Snapshot de valor para Recharts
+            const totalCollectionValue = newHistory.reduce((sum, entry) => sum + parseFloat(entry.totalValue), 0).toFixed(2);
+            const newValueSnapshots = [
+                ...(prev.valueSnapshots || []),
+                { date: new Date().toLocaleTimeString(), value: parseFloat(totalCollectionValue) }
+            ].slice(-20);
+
             return {
                 ...prev,
                 inventory: updatedInventory,
-                history: [newHistoryEntry, ...prev.history].slice(0, 50)
+                history: newHistory,
+                valueSnapshots: newValueSnapshots
             };
         });
     };
@@ -87,5 +117,5 @@ export const useCollection = () => {
         return inventory[cardId] || 0;
     };
 
-    return { inventory, history, profile, setTrainerName, addCardsToCollection, hasCard, getCardCount };
+    return { inventory, history, profile, setTrainerName, addCardsToCollection, hasCard, getCardCount, valueSnapshots };
 };
