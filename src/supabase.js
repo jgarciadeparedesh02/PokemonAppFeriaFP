@@ -12,24 +12,37 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 // Función helper para guardar un "pull" valioso en el ranking global
 export const syncPullToGlobal = async (trainerName, card, setInfo) => {
     if (!supabaseUrl || supabaseUrl.includes('TU_')) return;
+    if (!trainerName) {
+        console.warn("⚠️ No se puede sincronizar: trainerName está vacío");
+        return;
+    }
+
+    const payload = {
+        trainer_name: trainerName,
+        card_id: card.id,
+        card_name: card.name,
+        card_image: card.image,
+        rarity: card.rarity || 'Normal',
+        price: parseFloat(card.pricing?.cardmarket?.avg || 0),
+        set_name: setInfo?.name || 'Unknown',
+        set_id: setInfo?.id || 'Unknown'
+    };
+
+    console.log("🚀 Sincronizando pull valioso:", payload);
 
     try {
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('fair_ranking')
-            .insert([{
-                trainer_name: trainerName,
-                card_id: card.id,
-                card_name: card.name,
-                card_image: card.image,
-                rarity: card.rarity,
-                price: parseFloat(card.pricing?.cardmarket?.avg || 0),
-                set_name: setInfo?.name,
-                set_id: setInfo?.id
-            }]);
+            .insert([payload])
+            .select();
 
-        if (error) console.error("Error syncing to global ranking:", error);
+        if (error) {
+            console.error("❌ Error Supabase (Ranking):", error.message, error.details);
+        } else {
+            console.log("✅ Pull sincronizado con éxito:", data);
+        }
     } catch (e) {
-        console.error("Supabase sync failed:", e);
+        console.error("❌ Excepción al sincronizar ranking:", e);
     }
 };
 
@@ -83,7 +96,7 @@ export const getGlobalRanking = async () => {
             .from('fair_ranking')
             .select('*')
             .order('price', { ascending: false })
-            .limit(20);
+            .limit(10);
 
         if (error) throw error;
         return data || [];

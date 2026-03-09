@@ -61,14 +61,11 @@ export const useCollection = () => {
         // 1. Registrar apertura global
         logPackOpening(packTotal);
 
-        // 2. Sincronizar pulls potentes
+        // 2. Sincronizar TODAS las cartas con el ranking global
+        console.log("Sincronizando todas las cartas para Entrenador:", profile.trainerName);
         if (profile.trainerName) {
             newCards.forEach(card => {
-                const price = card.pricing?.cardmarket?.avg || 0;
-                const isRare = ['Rare', 'Ultra', 'Secret', 'Illustration', 'VMAX', 'VSTAR', 'Hyper'].some(r => card.rarity?.includes(r));
-                if (price > 5 || isRare) {
-                    syncPullToGlobal(profile.trainerName, card, setInfo);
-                }
+                syncPullToGlobal(profile.trainerName, card, setInfo);
             });
         }
 

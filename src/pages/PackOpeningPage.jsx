@@ -188,6 +188,7 @@ const PackOpeningPage = () => {
             setTimeout(() => {
                 setPhase('stack');
                 // Guardar en la colección con la información del set
+                console.log("📦 Guardando en colección. Set info:", setInfo);
                 addCardsToCollection(cards, setInfo);
 
                 // Comprobar si la PRIMERA carta es rara
