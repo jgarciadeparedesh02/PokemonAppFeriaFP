@@ -90,7 +90,7 @@ const RankingPage = () => {
                 </div>
             )}
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {activeTab === 'local' ? (
                     topCards.length === 0 ? (
                         <div className="py-20 text-center border-2 border-dashed border-white/5 rounded-3xl">

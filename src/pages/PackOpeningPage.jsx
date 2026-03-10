@@ -279,7 +279,7 @@ const PackOpeningPage = () => {
                 )}
             </AnimatePresence>
 
-            <div className="w-full max-w-md h-full flex flex-col items-center justify-center overflow-hidden relative z-10">
+            <div className="w-full max-w-4xl h-full flex flex-col items-center justify-center overflow-hidden relative z-10">
                 {/* HUD */}
                 <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-50">
                     <button
@@ -539,7 +539,7 @@ const PackOpeningPage = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-3 mb-10">
+                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mb-10">
                                 {cards.map((card, idx) => (
                                     <motion.div
                                         key={`${card.id}-${idx}`}

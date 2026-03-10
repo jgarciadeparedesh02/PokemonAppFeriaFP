@@ -4,7 +4,7 @@ import { fetchSets, fetchCardsBySet } from '../api/pokemon';
 import { useCollection } from '../hooks/useCollection';
 import { useSound } from '../hooks/useSound';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, ShieldCheck, X } from 'lucide-react';
+import { Search, Filter, ShieldCheck, X, ArrowUpAZ, ArrowDownZA, ArrowUp10, ArrowDown01, Loader2 } from 'lucide-react';
 import CardImage from '../components/CardImage';
 import BrandHeader from '../components/BrandHeader';
 import ValueChart from '../components/ValueChart';
@@ -20,8 +20,12 @@ const CollectionPage = () => {
     const [activeCard, setActiveCard] = useState(null);
     const [fullCardDetails, setFullCardDetails] = useState(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
-    const [filterType, setFilterType] = useState('All');
-    const [sortBy, setSortBy] = useState('number'); // number, name, price, hp
+
+    const [sortBy, setSortBy] = useState('number'); // number, name, price
+    const [sortOrder, setSortOrder] = useState('asc'); // asc, desc
+    const [isSorting, setIsSorting] = useState(false);
+    const [cardDetailsMap, setCardDetailsMap] = useState({});
+    const [expansionValue, setExpansionValue] = useState(0);
     const { inventory, getCardCount, valueSnapshots } = useCollection();
     const { playSound } = useSound();
 
@@ -93,22 +97,39 @@ const CollectionPage = () => {
             card.name.toLowerCase().includes(search.toLowerCase())
         );
 
-        if (filterType !== 'All') {
-            result = result.filter(card => card.types?.includes(filterType));
-        }
+
 
         result.sort((a, b) => {
+            let comparison = 0;
             if (sortBy === 'number') {
-                return parseInt(a.localId || 0) - parseInt(b.localId || 0);
+                comparison = parseInt(a.localId || 0) - parseInt(b.localId || 0);
+            } else if (sortBy === 'name') {
+                comparison = a.name.localeCompare(b.name);
+            } else if (sortBy === 'price') {
+                const priceA = parseFloat(cardDetailsMap[a.id]?.pricing?.cardmarket?.avg || a.pricing?.cardmarket?.avg || 0);
+                const priceB = parseFloat(cardDetailsMap[b.id]?.pricing?.cardmarket?.avg || b.pricing?.cardmarket?.avg || 0);
+                comparison = priceA - priceB;
             }
-            if (sortBy === 'name') return a.name.localeCompare(b.name);
-            if (sortBy === 'hp') return (b.hp || 0) - (a.hp || 0);
-            if (sortBy === 'price') return (b.pricing?.cardmarket?.avg || 0) - (a.pricing?.cardmarket?.avg || 0);
-            return 0;
+            return sortOrder === 'asc' ? comparison : -comparison;
         });
 
         return result;
-    }, [cards, search, filterType, sortBy]);
+    }, [cards, search, sortBy, sortOrder, cardDetailsMap]);
+
+    const handleSortChange = (newSortBy) => {
+        if (sortBy === newSortBy) {
+            setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(newSortBy);
+            // Default to descending for price, ascending for others
+            setSortOrder(newSortBy === 'price' ? 'desc' : 'asc');
+        }
+
+        setIsSorting(true);
+        setTimeout(() => setIsSorting(false), 400);
+    };
+
+
 
     const stats = useMemo(() => {
         if (cards.length === 0) return { collected: 0, total: 0, totalValue: 0 };
@@ -119,35 +140,42 @@ const CollectionPage = () => {
         };
     }, [cards, inventory]);
 
-    // Track card details with pricing for the current set
-    const [cardDetailsMap, setCardDetailsMap] = useState({});
-    const [expansionValue, setExpansionValue] = useState(0);
+
 
     useEffect(() => {
         if (cards.length > 0) {
             const loadPrices = async () => {
-                const ownedInSet = cards.filter(c => inventory[c.id]);
                 const details = { ...cardDetailsMap };
                 let total = 0;
 
-                // Load prices for owned cards that we don't have yet
-                for (const card of ownedInSet) {
-                    if (!details[card.id]) {
-                        try {
-                            const { fetchCardById } = await import('../api/pokemon');
-                            const data = await fetchCardById(card.id);
-                            details[card.id] = data;
-                        } catch (e) {
-                            console.error("Error fetching price for", card.id);
+                // Dividimos en lotes de 10 para no saturar la API pero ir rápido
+                const batchSize = 12;
+                const { fetchCardById } = await import('../api/pokemon');
+
+                for (let i = 0; i < cards.length; i += batchSize) {
+                    const batch = cards.slice(i, i + batchSize);
+
+                    await Promise.all(batch.map(async (card) => {
+                        if (!details[card.id]) {
+                            try {
+                                const data = await fetchCardById(card.id);
+                                if (data) details[card.id] = data;
+                            } catch (e) {
+                                console.error("Error fetching price for", card.id);
+                            }
                         }
-                    }
+                    }));
 
-                    const price = details[card.id]?.pricing?.cardmarket?.avg || 0;
-                    total += price * (inventory[card.id] || 1);
+                    // Actualizamos el mapa progresivamente para que el usuario vea resultados
+                    setCardDetailsMap({ ...details });
+
+                    // Calcular valor acumulado de lo que ya tenemos y es propiedad del usuario
+                    const currentTotal = cards.reduce((sum, card) => {
+                        const price = details[card.id]?.pricing?.cardmarket?.avg || 0;
+                        return sum + (price * (inventory[card.id] || 0));
+                    }, 0);
+                    setExpansionValue(currentTotal.toFixed(2));
                 }
-
-                setCardDetailsMap(details);
-                setExpansionValue(total.toFixed(2));
             };
             loadPrices();
         } else {
@@ -261,31 +289,20 @@ const CollectionPage = () => {
                             </div>
                         </div>
 
-                        {/* Filtros Rápidos */}
-                        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-                            {['All', 'Fire', 'Water', 'Grass', 'Lightning', 'Psychic', 'Fighting', 'Colorless'].map(type => (
-                                <button
-                                    key={type}
-                                    onClick={() => setFilterType(type)}
-                                    className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase transition-all whitespace-nowrap ${filterType === type
-                                        ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                                        : 'glass text-slate-400 hover:text-white'
-                                        }`}
-                                >
-                                    {type === 'All' ? 'Todos' : type}
-                                </button>
-                            ))}
-                        </div>
+
 
                         <div className="flex justify-between items-center bg-black/20 rounded-xl p-1 border border-white/5">
-                            {['number', 'name', 'price', 'hp'].map(sort => (
+                            {['number', 'name', 'price'].map(sort => (
                                 <button
                                     key={sort}
-                                    onClick={() => setSortBy(sort)}
-                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${sortBy === sort ? 'bg-white/10 text-white' : 'text-slate-500'
+                                    onClick={() => handleSortChange(sort)}
+                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all flex items-center justify-center gap-1 ${sortBy === sort ? 'bg-white/10 text-white' : 'text-slate-500'
                                         }`}
                                 >
-                                    {sort === 'number' ? '#' : sort === 'name' ? 'Nombre' : sort === 'price' ? 'Precio' : 'HP'}
+                                    {sort === 'number' ? '#' : sort === 'name' ? 'Nombre' : 'Precio'}
+                                    {sortBy === sort && (
+                                        sortOrder === 'asc' ? <ArrowUpAZ size={12} /> : <ArrowDownZA size={12} />
+                                    )}
                                 </button>
                             ))}
                         </div>
@@ -295,7 +312,7 @@ const CollectionPage = () => {
 
             {!selectedSet ? (
                 /* SETS LIST VIEW */
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {sets.filter(s => s.name.toLowerCase().includes(search.toLowerCase())).map(set => {
                         const collectedInSet = Object.keys(inventory).filter(id => id.startsWith(set.id)).length;
                         const totalInSet = set.cardCount?.total || 0;
@@ -336,14 +353,22 @@ const CollectionPage = () => {
             ) : (
                 /* CARDS GRID VIEW */
                 <>
-                    {loading ? (
-                        <div className="grid grid-cols-3 gap-3 animate-pulse">
-                            {[...Array(9)].map((_, i) => (
-                                <div key={i} className="aspect-[2/3] bg-surface rounded-lg border border-white/5" />
+                    {loading || isSorting ? (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+                            {[...Array(24)].map((_, i) => (
+                                <div key={i} className="aspect-[2/3] bg-surface/50 rounded-lg border border-white/5 flex items-center justify-center relative overflow-hidden">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
+                                    {i === 0 && (
+                                        <div className="z-10 flex flex-col items-center gap-2">
+                                            <Loader2 className="text-primary animate-spin" size={24} />
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Ordenando...</span>
+                                        </div>
+                                    )}
+                                </div>
                             ))}
                         </div>
                     ) : (
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3">
                             {filteredCards.map((card) => {
                                 const owned = !!inventory[card.id];
                                 const count = getCardCount(card.id);

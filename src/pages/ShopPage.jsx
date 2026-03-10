@@ -45,7 +45,7 @@ const ShopPage = () => {
                 <p className="text-slate-400 mt-1">Selecciona una expansión para abrir sobres</p>
             </header>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
                 {sets.length === 0 ? (
                     <div className="col-span-full py-12 text-center bg-surface rounded-2xl border border-white/5">
                         <p className="text-slate-500">No se encontraron expansiones. Por favor, comprueba tu conexión.</p>

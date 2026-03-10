@@ -17,7 +17,7 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen font-sans selection:bg-primary/30">
-      <main className="max-w-md mx-auto relative min-h-screen">
+      <main className="max-w-7xl mx-auto relative min-h-screen">
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<ShopPage />} />
           <Route path="/collection" element={<CollectionPage />} />

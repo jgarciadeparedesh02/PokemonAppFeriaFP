@@ -4,7 +4,7 @@ import { ShoppingBag, Box, BookOpen, History, Trophy } from 'lucide-react';
 
 const BottomNav = () => {
     return (
-        <nav className="fixed bottom-0 left-0 right-0 h-16 bg-[#161b33] border-t border-white/10 flex items-center justify-around px-4 z-50">
+        <nav className="fixed bottom-0 left-0 right-0 h-16 bg-[#161b33] border-t border-white/10 flex items-center justify-around px-4 z-50 md:bottom-8 md:left-1/2 md:-translate-x-1/2 md:w-fit md:h-14 md:gap-12 md:px-10 md:rounded-2xl md:border md:bg-[#161b33]/80 md:backdrop-blur-xl md:shadow-2xl md:shadow-black/50">
             <NavLink
                 to="/"
                 className={({ isActive }) =>

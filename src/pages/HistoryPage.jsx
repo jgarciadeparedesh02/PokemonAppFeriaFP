@@ -39,7 +39,7 @@ const HistoryPage = () => {
                 <p className="text-slate-400 text-sm">Registro de tus últimos sobres abiertos</p>
             </header>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {history.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-center uppercase tracking-widest text-slate-600">
                         <Box size={48} className="mb-4 opacity-20" />
